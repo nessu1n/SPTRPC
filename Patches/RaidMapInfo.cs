@@ -110,9 +110,7 @@ namespace SPTRPC
                         }
                     });
                 }
-            }
-
-            Plugin.firstTimeInMenu = true;
+            }      
                 
         }
 

@@ -110,6 +110,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Patches\EndRaid.cs" />
     <Compile Include="Patches\MenuPatch.cs" />
     <Compile Include="Patches\RaidMapInfo.cs" />
     <Compile Include="Plugin.cs" />

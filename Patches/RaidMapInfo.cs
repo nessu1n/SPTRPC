@@ -47,7 +47,6 @@ namespace SPTRPC
             LocationSettingsClass.Location selectedLocation = raidSettings.SelectedLocation; // Attribute / Data type fuckery I may be stupid but this took me too long to figure out
             string locationName = selectedLocation != null ? selectedLocation.Name : "Unknown";
 
-            int sessionDuration = selectedLocation.EscapeTimeLimit; // Placeholder for now I might use this
 
             switch (locationName) // Switch statement for converting map names to their actual name (for some reason BSG decided to make only 3 maps have different names)
             {
@@ -115,13 +114,6 @@ namespace SPTRPC
 
             Plugin.firstTimeInMenu = true;
                 
-
-            Logger.LogInfo($"Nickname: {nickname}");
-            Logger.LogInfo($"Level: {level}");
-            Logger.LogInfo($"Side: {side}");
-            Logger.LogInfo($"Faction: {faction}");
-            Logger.LogInfo($"Location: {locationName}");
-            Logger.LogInfo($"Duration: {sessionDuration}");
         }
 
     }

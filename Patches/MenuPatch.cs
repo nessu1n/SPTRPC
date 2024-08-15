@@ -48,11 +48,6 @@ namespace SPTRPC
 
                     Plugin.firstTimeInMenu = false;
                 }
-                else
-                {
-                    return;
-                }
-                
             }
         }
     }

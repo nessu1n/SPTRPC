@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using EFT.UI.SessionEnd;
 
-namespace SPTRPC.Patches
+namespace SPTRPC
 {
     public class EndRaid : ModulePatch
     {

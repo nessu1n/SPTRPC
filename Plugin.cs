@@ -13,7 +13,6 @@ using RichPresenceAPI.Logging;
 using BepInEx.Logging;
 using RichPresenceAPI.Native;
 using System.Runtime.InteropServices;
-using SPTRPC.Patches;
 
 namespace SPTRPC
 {
@@ -46,6 +45,7 @@ namespace SPTRPC
             new RaidMapInfo().Enable();
             new MenuPatch().Enable();
             new EndRaid().Enable();
+            new CancelMatchmaking().Enable();
         }
 
         private void LoadDiscordRPC()

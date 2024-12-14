@@ -1,26 +1,20 @@
-﻿using EFT.UI;
-using EFT;
+﻿using System.Reflection;
+using EFT.UI.SessionEnd;
 using HarmonyLib;
 using SPT.Reflection.Patching;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using EFT.UI.SessionEnd;
 
-namespace SPTRPC
+namespace SPTRPC.Patches
 {
     public class EndRaid : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
         {
-            return AccessTools.Method(typeof(SessionResultExitStatus), "Show", new[]{typeof(Profile),typeof(PlayerVisualRepresentation),typeof(ESideType),typeof(ExitStatus),typeof(TimeSpan),typeof(ISession),typeof(bool)});
+            // For this patch, it doesn't matter which Show method is hooked onto, so I simplified the logic here - Terkoiz
+            return AccessTools.FirstMethod(typeof(SessionResultExitStatus), method => method.Name == nameof(SessionResultExitStatus.Show));
         }
 
         [PatchPostfix]
-        private static void PostFix(Profile activeProfile, PlayerVisualRepresentation lastPlayerState, ESideType side, ExitStatus exitStatus, TimeSpan raidTime, ISession session, bool isOnline)
+        private static void PostFix() // All the parameters in this postfix patch were unused, so I removed them - Terkoiz
         {
             Plugin.firstTimeInMenu = true; // Literally just need to hook this to only allow the menu status to be displayed when in the actual menu
         }

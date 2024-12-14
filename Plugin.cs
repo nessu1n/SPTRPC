@@ -1,23 +1,14 @@
 ﻿using BepInEx;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.IO;
-using System.Reflection;
 using DiscordRPC;
-using RichPresenceAPI;
 using RichPresenceAPI.Logging;
 using BepInEx.Logging;
-using RichPresenceAPI.Native;
-using System.Runtime.InteropServices;
+using SPTRPC.Patches;
 
 namespace SPTRPC
 {
     // first string below is your plugin's GUID, it MUST be unique to any other mod. Read more about it in BepInEx docs. Be sure to update it if you copy this project.
-    [BepInPlugin("nessu1n.SPTRPC", "SPTRPC", "1.0.0")]
+    [BepInPlugin("nessu1n.SPTRPC", "SPTRPC", "1.0.1")]
     [BepInDependency("io.github.xhayper.RichPresenceAPI")]
     public class Plugin : BaseUnityPlugin
     {
@@ -25,8 +16,6 @@ namespace SPTRPC
         public static DiscordRpcClient client;
         private bool isInitialized = false;
         public static bool firstTimeInMenu = true; // Bool variable to control RPC updates in the menu screen
-
-
 
         // BaseUnityPlugin inherits MonoBehaviour, so you can use base unity functions like Awake() and Update()
         private void Awake()
@@ -63,19 +52,19 @@ namespace SPTRPC
             client.Initialize();
 
             LogSource.LogInfo("Setting presence...");
-            client.SetPresence(new RichPresence()
+            client.SetPresence(new RichPresence
+            {
+                State = "Loading into the Menu",
+                Timestamps = new Timestamps
                 {
-                    State = "Loading into the Menu",
-                    Timestamps = new Timestamps()
-                    {
-                        Start = startTime,
-                        End = null
-                    },
-                    Assets = new Assets()
-                    {
-                        LargeImageKey = "mainmenuimage"
-                    }
-                });
+                    Start = startTime,
+                    End = null
+                },
+                Assets = new Assets
+                {
+                    LargeImageKey = "mainmenuimage"
+                }
+            });
             LogSource.LogInfo("RPC initialized successfully!");
         }
 

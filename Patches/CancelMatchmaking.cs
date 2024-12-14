@@ -1,21 +1,16 @@
-﻿using EFT.UI.Matchmaker;
-using EFT;
+﻿using System.Reflection;
+using EFT.UI.Matchmaker;
 using HarmonyLib;
 using SPT.Reflection.Patching;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace SPTRPC
+namespace SPTRPC.Patches
 {
     public class CancelMatchmaking : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
         {
-            return AccessTools.Method(typeof(MatchmakerTimeHasCome), "method_7"); // This is so incredibly jank but its an edge case fix this is the function that runs when the cancel button is clicked in "The time has come" UI screen
+            // In 3.10, the target method changed from method_7 to method_9 - Terkoiz
+            return AccessTools.Method(typeof(MatchmakerTimeHasCome), nameof(MatchmakerTimeHasCome.method_9)); // This is so incredibly jank but its an edge case fix this is the function that runs when the cancel button is clicked in "The time has come" UI screen
         }
 
         [PatchPostfix]

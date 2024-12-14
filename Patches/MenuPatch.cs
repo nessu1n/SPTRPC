@@ -1,54 +1,51 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Reflection;
-using HarmonyLib;
-using EFT;
-using EFT.UI;
-using SPT.Reflection.Patching;
-using UnityEngine;
-using BepInEx.Logging;
 using DiscordRPC;
-using System.Runtime.Remoting.Messaging;
+using EFT.UI;
+using HarmonyLib;
+using SPT.Reflection.Patching;
 
-namespace SPTRPC
+namespace SPTRPC.Patches
 {
     public class MenuPatch : ModulePatch
     {
-        public static ManualLogSource LogSource;
         protected override MethodBase GetTargetMethod()
         {
-            return AccessTools.Method(typeof(MenuScreen), "Show", new[] { typeof(Profile), typeof(MatchmakerPlayerControllerClass), typeof(ESessionMode)});
-        } // Hook method that runs whenever the menu buttons are displayed
+            // For this patch, it doesn't matter which Show method is hooked onto, so I simplified the logic here - Terkoiz
+            // Hook method that runs whenever the menu buttons are displayed
+            return AccessTools.FirstMethod(typeof(MenuScreen), method => method.Name == nameof(MenuScreen.Show));
+        }
 
         [PatchPostfix]
-        private static void Postfix(MenuScreen __instance, Profile profile, MatchmakerPlayerControllerClass matchmaker, ESessionMode sessionMode)
+        private static void Postfix()
         {
-            DateTime startTime = DateTime.UtcNow;
-            if (Plugin.client != null)
+            // I rearranged the logic here to reduce nesting - Terkoiz
+            if (Plugin.client == null)
             {
-                if (Plugin.firstTimeInMenu)
-                {
-                    Plugin.client.SetPresence(new DiscordRPC.RichPresence()
-                    {
-                        Details = "In the menus",
-                        State = "Gearing up",
-                        Timestamps = new Timestamps()
-                        {
-                            Start = startTime,
-                            End = null
-                        },
-                        Assets = new Assets()
-                        {
-                            LargeImageKey = "inthemenus"
-                        }
-                    });
-
-                    Plugin.firstTimeInMenu = false;
-                }
+                return;
             }
+
+            if (!Plugin.firstTimeInMenu)
+            {
+                return;
+            }
+
+            Plugin.client.SetPresence(new RichPresence
+            {
+                Details = "In the menus",
+                State = "Gearing up",
+                Timestamps = new Timestamps
+                {
+                    Start = DateTime.UtcNow,
+                    End = null
+                },
+                Assets = new Assets
+                {
+                    LargeImageKey = "inthemenus"
+                }
+            });
+
+            Plugin.firstTimeInMenu = false;
         }
     }
 }

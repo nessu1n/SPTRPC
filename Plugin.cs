@@ -39,33 +39,42 @@ namespace SPTRPC
 
         private void LoadDiscordRPC()
         {
-            DateTime startTime = DateTime.UtcNow;
-            Logger.LogInfo(startTime);
-
-            client = RichPresenceAPI.Utility.CreateDiscordRpcClient("1273226966950084688");
-
-            client.Logger = new BepInExLogger(Logger)
+            try
             {
-                Level = DiscordRPC.Logging.LogLevel.Info
-            };
+                DateTime startTime = DateTime.UtcNow;
+                Logger.LogInfo(startTime);
 
-            client.Initialize();
+                client = RichPresenceAPI.Utility.CreateDiscordRpcClient("1273226966950084688");
 
-            LogSource.LogInfo("Setting presence...");
-            client.SetPresence(new RichPresence
+                // Disable library logger to avoid formatting errors
+                // client.Logger = new BepInExLogger(Logger)
+                // {
+                //     Level = DiscordRPC.Logging.LogLevel.Warning
+                // };
+
+                client.Initialize();
+
+                LogSource.LogInfo("Setting presence...");
+                client.SetPresence(new RichPresence
+                {
+                    State = "Loading into the Menu",
+                    Timestamps = new Timestamps
+                    {
+                        Start = startTime,
+                        End = null
+                    },
+                    Assets = new Assets
+                    {
+                        LargeImageKey = "mainmenuimage"
+                    }
+                });
+                LogSource.LogInfo("RPC initialized successfully!");
+            }
+            catch (Exception ex)
             {
-                State = "Loading into the Menu",
-                Timestamps = new Timestamps
-                {
-                    Start = startTime,
-                    End = null
-                },
-                Assets = new Assets
-                {
-                    LargeImageKey = "mainmenuimage"
-                }
-            });
-            LogSource.LogInfo("RPC initialized successfully!");
+                LogSource.LogError($"Failed to initialize Discord RPC: {ex.Message}");
+                client = null;
+            }
         }
 
         private void OnDestroy()

@@ -9,8 +9,8 @@ namespace SPTRPC.Patches
     {
         protected override MethodBase GetTargetMethod()
         {
-            // In 3.10, the target method changed from method_7 to method_9 - Terkoiz
-            return AccessTools.Method(typeof(MatchmakerTimeHasCome), nameof(MatchmakerTimeHasCome.method_9)); // This is so incredibly jank but its an edge case fix this is the function that runs when the cancel button is clicked in "The time has come" UI screen
+            // In 4.0 and later, the method signature is AbortMatching
+            return AccessTools.Method(typeof(MatchmakerTimeHasCome), nameof(MatchmakerTimeHasCome.AbortMatching)); // This runs when the cancel button is clicked in "The time has come" UI screen
         }
 
         [PatchPostfix]

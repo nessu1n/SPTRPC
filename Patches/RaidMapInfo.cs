@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using DiscordRPC;
+using Discord;
 using EFT;
 using EFT.UI.Matchmaker;
 using HarmonyLib;
@@ -12,63 +12,76 @@ namespace SPTRPC.Patches
     {
         protected override MethodBase GetTargetMethod()
         {
-            // For 3.10, an extra MatchmakerPlayerControllerClass parameter was added for this method - Terkoiz
-            return AccessTools.Method(typeof(MatchmakerTimeHasCome), nameof(MatchmakerTimeHasCome.Show), new[] { typeof(ISession), typeof(RaidSettings), typeof(MatchmakerPlayerControllerClass) });
+            // For 4.0.0 and later, the method signature has changed to include MatchmakerPlayersController
+            return AccessTools.Method(typeof(MatchmakerTimeHasCome), nameof(MatchmakerTimeHasCome.Show), new[] { typeof(IEftSession), typeof(RaidSettings), typeof(MatchmakerPlayersController) });
         }
 
         // Postfix method that executes after the original method
         [PatchPostfix]
-        private static void Postfix(ISession session, RaidSettings raidSettings)
+        private static void Postfix(IEftSession session, RaidSettings raidSettings)
         {
-            // Moved this check to happen way sooner, preventing unnecessary code from running before it - Terkoiz
-            if (Plugin.client == null)
+            // Check against our new native client setup
+            if (Plugin.discordClient == null || Plugin.activityManager == null)
             {
                 return;
             }
 
             if (session == null || session.Profile == null || session.Profile.Info == null)
             {
-                // Previous LogSource usage here was invalid and would've just produced an exception. Fixed it by pointing the call to the base plugin class LogSource - Terkoiz
                 Plugin.LogSource.LogInfo("No data is available :(");
                 return; // Skip if data is not available
             }
 
             string nickname = session.Profile.Info.Nickname;
-
             int level = session.Profile.Info.Level;
 
-            EPlayerSide faction = session.Profile.Info.Side;   // Convert both types to strings for use in if condition logic
+            EPlayerSide faction = session.Profile.Info.Side;
             string factionString = faction.ToString();
 
-            ESideType side = raidSettings.Side;       // Convert both types to strings for use in if condition logic
+            ESideType side = raidSettings.Side;
             string sideString = side.ToString();
 
-            LocationSettingsClass.Location selectedLocation = raidSettings.SelectedLocation; // Attribute / Data type fuckery I may be stupid but this took me too long to figure out
-            string locationName = selectedLocation != null ? selectedLocation.LocalizedName : "Unknown"; // If we use the LocalizedName property, we don't need to do any conversion later :p - Terkoiz
+            JsonType.LocationSettings.Location selectedLocation = raidSettings.SelectedLocation;
+            string locationName = selectedLocation != null ? selectedLocation.LocalizedName : "Unknown";
 
-            // Remove capitals and spaces from name string to create a useable image string
-            // because Discord Application art asset names can't have either
-            string imageString = locationName.ToLower().Replace(" ", ""); 
+            // Clean string formatting for Discord asset requirements
+            string imageString = locationName.ToLower().Replace(" ", "");
 
-            DateTime startTime = DateTime.UtcNow;
+            // Record the exact time the raid screen loaded using Unix format
+            long currentRaidStartTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-            // Reduced the amount of duplicate code here by utilizing inline conditions for Details, SmallImageKey and SmallImageText instead of having two big "if" blocks - Terkoiz
+            // Set up conditions for Scav gameplay parsing
             bool isScav = sideString == "Savage";
-            Plugin.client.SetPresence(new RichPresence
+
+            // Construct the updated activity profile directly matching the GameSDK schema
+            var raidActivity = new Discord.Activity
             {
                 Details = isScav ? "Playing as a Scav" : $"Operator {nickname}",
                 State = $"In Raid - {locationName}",
-                Timestamps = new Timestamps
+                Timestamps = new Discord.ActivityTimestamps
                 {
-                    Start = startTime,
-                    End = null
+                    Start = currentRaidStartTime
                 },
-                Assets = new Assets
+                Assets = new Discord.ActivityAssets
                 {
-                    LargeImageKey = $"{imageString}",
-                    LargeImageText = $"{locationName}",
-                    SmallImageKey = isScav ? null : $"{factionString.ToLower()}",
-                    SmallImageText = isScav ? null : $"{factionString.ToUpper()} - Lvl {level}"
+                    LargeImage = imageString,
+                    LargeText = locationName,
+                    // If playing as a Scav, drop the small badge properties entirely
+                    SmallImage = isScav ? null : factionString.ToLower(),
+                    SmallText = isScav ? null : $"{factionString.ToUpper()} - Lvl {level}"
+                }
+            };
+
+            // Push the data directly to Discord's unmanaged memory manager
+            Plugin.activityManager.UpdateActivity(raidActivity, (result) =>
+            {
+                if (result == Discord.Result.Ok)
+                {
+                    Plugin.LogSource.LogDebug($"Successfully pushed Raid Presence for {locationName}!");
+                }
+                else
+                {
+                    Plugin.LogSource.LogWarning($"Failed to push raid status update. Discord returned: {result}");
                 }
             });
         }

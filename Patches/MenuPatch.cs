@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using DiscordRPC;
+using Discord;
 using EFT.UI;
 using HarmonyLib;
 using SPT.Reflection.Patching;
@@ -19,8 +19,8 @@ namespace SPTRPC.Patches
         [PatchPostfix]
         private static void Postfix()
         {
-            // I rearranged the logic here to reduce nesting - Terkoiz
-            if (Plugin.client == null)
+            // Check against our new native client setup
+            if (Plugin.discordClient == null || Plugin.activityManager == null)
             {
                 return;
             }
@@ -30,18 +30,31 @@ namespace SPTRPC.Patches
                 return;
             }
 
-            Plugin.client.SetPresence(new RichPresence
+            // Record the current time in Unix format for the "Time Elapsed" clock
+            long currentMenuStartTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            // Construct the updated activity profile directly matching the GameSDK schema
+            var menuActivity = new Discord.Activity
             {
                 Details = "In the menus",
                 State = "Gearing up",
-                Timestamps = new Timestamps
+                Timestamps = new Discord.ActivityTimestamps
                 {
-                    Start = DateTime.UtcNow,
-                    End = null
+                    Start = currentMenuStartTime
                 },
-                Assets = new Assets
+                Assets = new Discord.ActivityAssets
                 {
-                    LargeImageKey = "inthemenus"
+                    LargeImage = "inthemenus",
+                    LargeText = "Main Menu"
+                }
+            };
+
+            // Push the data directly to Discord's unmanaged memory manager
+            Plugin.activityManager.UpdateActivity(menuActivity, (result) =>
+            {
+                if (result == Discord.Result.Ok)
+                {
+                    Plugin.LogSource.LogDebug("Successfully updated Menu Presence!");
                 }
             });
 

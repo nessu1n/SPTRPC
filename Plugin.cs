@@ -1,36 +1,37 @@
 ﻿using BepInEx;
-using System;
-using DiscordRPC;
-using RichPresenceAPI.Logging;
 using BepInEx.Logging;
+using System;
+using Discord; // Uses the namespaces from your new Discord.cs wrapper
 using SPTRPC.Patches;
 
 namespace SPTRPC
 {
-    // first string below is your plugin's GUID, it MUST be unique to any other mod. Read more about it in BepInEx docs. Be sure to update it if you copy this project.
-    [BepInPlugin("nessu1n.SPTRPC", "SPTRPC", "1.0.1")]
-    [BepInDependency("io.github.xhayper.RichPresenceAPI")]
+    [BepInPlugin("nessu1n.SPTRPC", "SPTRPC", "2.0.0")]
+    // REMOVED: BepInDependency to RichPresenceAPI is no longer needed!
     public class Plugin : BaseUnityPlugin
     {
         public static ManualLogSource LogSource;
-        public static DiscordRpcClient client;
-        private bool isInitialized = false;
-        public static bool firstTimeInMenu = true; // Bool variable to control RPC updates in the menu screen
 
-        // BaseUnityPlugin inherits MonoBehaviour, so you can use base unity functions like Awake() and Update()
+        // This holds the main connection reference for the modern SDK
+        public static Discord.Discord discordClient;
+        public static Discord.ActivityManager activityManager;
+
+        private bool isInitialized = false;
+        public static bool firstTimeInMenu = true;
+        public static long startTimeUnix;
+
         private void Awake()
         {
-            // save the Logger to variable so we can use it elsewhere in the project
             LogSource = Logger;
-            LogSource.LogInfo("SPTRPC Loaded, Initializing RPC...");
+            LogSource.LogInfo("SPTRPC Loaded, Initializing Native Social SDK...");
 
-            if (!isInitialized) // If condition to ensure the RPC connection is only initialized once upon plugin load.
+            if (!isInitialized)
             {
                 LoadDiscordRPC();
                 isInitialized = true;
             }
 
-            // uncomment line(s) below to enable desired example patch, then press F6 to build the project:
+            // Your existing SPT Harmony patches remain completely untouched
             new RaidMapInfo().Enable();
             new MenuPatch().Enable();
             new EndRaid().Enable();
@@ -39,50 +40,104 @@ namespace SPTRPC
 
         private void LoadDiscordRPC()
         {
+            // The modern SDK expects Unix epoch timestamps rather than a raw DateTime object
+            startTimeUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            LogSource.LogInfo($"Start time recorded: {startTimeUnix}");
+
             try
             {
-                DateTime startTime = DateTime.UtcNow;
-                Logger.LogInfo(startTime);
+                // NoRequireDiscord flag prevents the game crashing if the player doesn't have Discord running
+                discordClient = new Discord.Discord(1273226966950084688, (ulong)Discord.CreateFlags.NoRequireDiscord);
 
-                client = RichPresenceAPI.Utility.CreateDiscordRpcClient("1273226966950084688");
+                // Grab the activity sub-manager which controls the actual status texts
+                activityManager = discordClient.GetActivityManager();
 
-                // Disable library logger to avoid formatting errors
-                // client.Logger = new BepInExLogger(Logger)
-                // {
-                //     Level = DiscordRPC.Logging.LogLevel.Warning
-                // };
-
-                client.Initialize();
-
-                LogSource.LogInfo("Setting presence...");
-                client.SetPresence(new RichPresence
+                // 2. Set the custom logger callback built directly into the new SDK
+                discordClient.SetLogHook(Discord.LogLevel.Info, (level, message) =>
                 {
-                    State = "Loading into the Menu",
-                    Timestamps = new Timestamps
-                    {
-                        Start = startTime,
-                        End = null
-                    },
-                    Assets = new Assets
-                    {
-                        LargeImageKey = "mainmenuimage"
-                    }
+                    LogSource.LogInfo($"[Discord SDK Internal] {message}");
                 });
+
+                LogSource.LogInfo("Setting initial presence...");
+
+                // 3. Trigger the initial status state using the helper wrapper below
+                UpdatePresence("Loading into the Menu", "", "mainmenuimage");
+
                 LogSource.LogInfo("RPC initialized successfully!");
             }
             catch (Exception ex)
             {
-                LogSource.LogError($"Failed to initialize Discord RPC: {ex.Message}");
-                client = null;
+                LogSource.LogError($"CRITICAL: Native Discord SDK failed to initialize! Error: {ex.Message}");
             }
+        }
+
+        // The native SDK relies on this frame-by-frame tick to fire background callbacks.
+        // Without this Update loop, presence strings will never actually update in Discord
+        private void Update()
+        {
+            if (discordClient != null)
+            {
+                try
+                {
+                    discordClient.RunCallbacks();
+                }
+                catch (Exception ex)
+                {
+                    LogSource.LogError($"Error during Discord callback tick: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Global helper method to cleanly update Rich Presence details
+        /// </summary>
+        public static void UpdatePresence(string state, string details, string largeImageKey)
+        {
+            if (activityManager == null)
+            {
+                LogSource.LogWarning("Cannot update presence: ActivityManager is null.");
+                return;
+            }
+
+            // Create the new activity data object matching the Social SDK schema
+            var activity = new Discord.Activity
+            {
+                State = state,
+                Details = details,
+                Timestamps = new Discord.ActivityTimestamps
+                {
+                    Start = startTimeUnix
+                },
+                Assets = new Discord.ActivityAssets
+                {
+                    LargeImage = largeImageKey,
+                    LargeText = "Single Player Tarkov"
+                }
+            };
+
+            // Push the update to Discord asynchronously
+            activityManager.UpdateActivity(activity, (result) =>
+            {
+                if (result == Discord.Result.Ok)
+                {
+                    LogSource.LogDebug($"Presence updated: {state} | {details}");
+                }
+                else
+                {
+                    LogSource.LogWarning($"Discord status update returned an error code: {result}");
+                }
+            });
         }
 
         private void OnDestroy()
         {
-            if (client != null)
+            // Safely close down the Windows unmanaged memory pointer when the game terminates
+            if (discordClient != null)
             {
-                client.Dispose();
-                LogSource.LogInfo("RPC Client disposed.");
+                discordClient.Dispose();
+                discordClient = null;
+                activityManager = null;
+                LogSource.LogInfo("Native Discord SDK client safely disposed.");
             }
         }
     }

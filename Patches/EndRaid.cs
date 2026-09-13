@@ -14,7 +14,7 @@ namespace SPTRPC.Patches
         }
 
         [PatchPostfix]
-        private static void PostFix() // All the parameters in this postfix patch were unused, so I removed them - Terkoiz
+        private static void Postfix() // Fixed casing from PostFix to Postfix for standard Harmony parsing
         {
             Plugin.firstTimeInMenu = true; // Literally just need to hook this to only allow the menu status to be displayed when in the actual menu
         }

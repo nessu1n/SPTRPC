@@ -1,13 +1,12 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
 using System;
-using Discord; // Uses the namespaces from your new Discord.cs wrapper
+using Discord;
 using SPTRPC.Patches;
 
 namespace SPTRPC
 {
     [BepInPlugin("nessu1n.SPTRPC", "SPTRPC", "2.0.0")]
-    // REMOVED: BepInDependency to RichPresenceAPI is no longer needed!
     public class Plugin : BaseUnityPlugin
     {
         public static ManualLogSource LogSource;
@@ -31,7 +30,6 @@ namespace SPTRPC
                 isInitialized = true;
             }
 
-            // Your existing SPT Harmony patches remain completely untouched
             new RaidMapInfo().Enable();
             new MenuPatch().Enable();
             new EndRaid().Enable();
@@ -52,7 +50,7 @@ namespace SPTRPC
                 // Grab the activity sub-manager which controls the actual status texts
                 activityManager = discordClient.GetActivityManager();
 
-                // 2. Set the custom logger callback built directly into the new SDK
+                // Set the custom logger callback built directly into the new SDK
                 discordClient.SetLogHook(Discord.LogLevel.Info, (level, message) =>
                 {
                     LogSource.LogInfo($"[Discord SDK Internal] {message}");
@@ -60,7 +58,7 @@ namespace SPTRPC
 
                 LogSource.LogInfo("Setting initial presence...");
 
-                // 3. Trigger the initial status state using the helper wrapper below
+                // Trigger the initial status state using the helper wrapper below
                 UpdatePresence("Loading into the Menu", "", "mainmenuimage");
 
                 LogSource.LogInfo("RPC initialized successfully!");

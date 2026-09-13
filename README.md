@@ -1,19 +1,8 @@
-SPTClientModExamples
+# Discord RPC for SPT
+A simple BepInEx plugin that displays basic Tarkov player / raid information on your Discord Profile
 
-Use this template to create your own client mods!
+## Usage
+Extract SPTRPC.dll and all of its dependencies into BepInEx/plugins
 
-1. Click the green **Use this template** > **Create a new repository** button at the top right of this page
-2. Use something like GitBash to clone your new repo into a folder on your computer (https://git-scm.com/downloads) or download it manually with **Code > Download ZIP**
-   * Make sure you are cloning **YOUR** new repo, not the example repo itself
-3. Rename the following from _SPTClientModExamples_ to your new mod name:
-    * Folder the project is in
-    * **.csproj** file
-    * **.sln** file
-4. Open the **.sln** file with a text editor, CTRL+F for _SPTClientModExamples_ and replace it with your new mod name
-5. Open the **.csproj** file with a text editor, CTRL+F for _SPTClientModExamples_ and replace it with your new mod name
-6. Open your solution by double clicking your **.sln** file, double click **Plugin.cs**
-7. Press CTRL + Shift + F, click Replace in Files
-    * make sure **Look in** is set to **Entire solution**
-    * in Find field, enter: _SPTClientModExamples_
-    * in Replace field, enter your new mod name
-    * click Replace All in bottom right, click yes if prompted
+## Dependency references
+[Discord GameSDK](https://docs.discord.com/developers/developer-tools/game-sdk) - Legacy Official Discord GameSDK for implementing Rich Presence. The legacy GameSDK was used due to the newer Social SDK requiring user oAuth to have a presence (wtf)
